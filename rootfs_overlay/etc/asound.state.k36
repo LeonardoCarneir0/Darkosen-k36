@@ -1,0 +1,170 @@
+state.rockchiprk817 {
+	control.1 {
+		iface MIXER
+		name 'BCLK Ratio'
+		value 64
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - 2147483647'
+		}
+	}
+	control.2 {
+		iface PCM
+		name 'PCM Read Wait Time MS'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - 10000 (step 1)'
+		}
+	}
+	control.3 {
+		iface PCM
+		name 'PCM Write Wait Time MS'
+		value 0
+		comment {
+			access 'read write'
+			type INTEGER
+			count 1
+			range '0 - 10000 (step 1)'
+		}
+	}
+	control.4 {
+		iface MIXER
+		name 'Playback Path'
+		value SPK
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 OFF
+			item.1 SPK
+			item.2 HP
+			item.3 SPK_HP
+			item.4 RCV
+			item.5 HP_NO_MIC
+			item.6 BT
+			item.7 RING_SPK
+			item.8 RING_HP
+			item.9 RING_HP_NO_MIC
+			item.10 RING_SPK_HP
+		}
+	}
+	control.5 {
+		iface MIXER
+		name 'Capture MIC Path'
+		value 'MIC OFF'
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 'MIC OFF'
+			item.1 'Main Mic'
+			item.2 'Hands Free Mic'
+			item.3 'BT Sco Mic'
+		}
+	}
+	control.6 {
+		iface MIXER
+		name 'Resume Path'
+		value OFF
+		comment {
+			access 'read write'
+			type ENUMERATED
+			count 1
+			item.0 OFF
+			item.1 ON
+		}
+	}
+	control.7 {
+		iface MIXER
+		name 'Playback Volume'
+		value.0 220
+		value.1 220
+		comment {
+			access 'read write'
+			type INTEGER
+			count 2
+			range '0 - 255'
+			dbmin -7100
+			dbmax -675
+			dbvalue.0 -1557
+			dbvalue.1 -1557
+		}
+	}
+	control.8 {
+		iface MIXER
+		name 'Record Volume'
+		value.0 255
+		value.1 255
+		comment {
+			access 'read write'
+			type INTEGER
+			count 2
+			range '0 - 255'
+		}
+	}
+	control.9 {
+		iface CARD
+		name 'Headphone Jack'
+		value false
+		comment {
+			access read
+			type BOOLEAN
+			count 1
+		}
+	}
+	control.10 {
+		iface CARD
+		name 'Headset Mic Jack'
+		value false
+		comment {
+			access read
+			type BOOLEAN
+			count 1
+		}
+	}
+	control.11 {
+		iface MIXER
+		name 'Headphone Switch'
+		value false
+		comment {
+			access 'read write'
+			type BOOLEAN
+			count 1
+		}
+	}
+	control.12 {
+		iface MIXER
+		name 'Speaker Switch'
+		value true
+		comment {
+			access 'read write'
+			type BOOLEAN
+			count 1
+		}
+	}
+	control.13 {
+		iface MIXER
+		name 'Main Mic Switch'
+		value true
+		comment {
+			access 'read write'
+			type BOOLEAN
+			count 1
+		}
+	}
+	control.14 {
+		iface MIXER
+		name 'Headset Mic Switch'
+		value false
+		comment {
+			access 'read write'
+			type BOOLEAN
+			count 1
+		}
+	}
+}

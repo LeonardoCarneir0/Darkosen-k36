@@ -1,0 +1,13 @@
+[Unit]
+Description=ZRam Compressed Swap for R36S
+After=local-fs.target
+Before=swap.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/zram-autostart.sh
+RemainAfterExit=yes
+ExecStop=/usr/bin/swapoff /dev/zram0
+
+[Install]
+WantedBy=swap.target multi-user.target

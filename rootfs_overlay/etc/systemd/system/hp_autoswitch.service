@@ -1,0 +1,12 @@
+[Unit]
+Description=Autoswitch de audio HP/SPK conforme o jack de fones (K36)
+After=sound.target audiopath.service 351mp.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/hp_autoswitch.sh
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,13 @@
+# Ignore large binary images and temporary caches (>100 MB)
+*.img
+*.img.xz
+*.img.gz
+*.7z*
+*.fat
+roms.tar
+darkos_rootfs_cache/
+Image_arkos_k36
+uInitrd_arkos_k36
+bootloader_16M.bin
+rootfs_overlay/usr/lib/aarch64-linux-gnu/libmali-bifrost-g31-rxp0-wayland-gbm.so
+rootfs_overlay/usr/lib/arm-linux-gnueabihf/libmali-bifrost-g31-rxp0-gbm.so
