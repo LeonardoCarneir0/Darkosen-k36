@@ -1,4 +1,4 @@
-# darkosen-k36
+# dArkOSen-K36
 
 [🇧🇷 Leia em Português (README.pt-BR.md)](README.pt-BR.md)
 
