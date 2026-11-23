@@ -108,3 +108,16 @@ sudo ./corrigir_cartao.sh /dev/sda
 ```bash
 sudo ./redimensionar_rootfs_9_5gb.sh /dev/sda
 ```
+
+---
+
+## Credits & Special Thanks
+
+- **Special thanks / Honorable mention to [`Plane-Customer3162`](https://www.reddit.com/user/Plane-Customer3162/)** for kindly providing the working stock boot files after I had lost the original SD card contents — without that dump, this reverse-engineering effort and hybrid build would not have been possible.
+- **ArkOS** (`christianhaitian`), **ArkOS-K36** (`AeolusUX`), **dArkOSen**, and the **PortMaster** team for their incredible community projects.
+
+## License
+
+- All original build scripts, documentation, and custom assets in this repository are licensed under the **[MIT License](LICENSE)**.
+- Linux Kernel `5.10.160` modules (`.ko`), Device Tree files (`.dts`/`.dtb`), and `exfat-fuse` binaries in `rootfs_overlay/` are licensed under **GPL-2.0**.
+- `libfuse2` (`libfuse.so.2.9.9`) is licensed under **LGPL-2.1**.

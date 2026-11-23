@@ -93,3 +93,16 @@ sudo ./corrigir_cartao.sh /dev/sda
 ```bash
 sudo ./redimensionar_rootfs_9_5gb.sh /dev/sda
 ```
+
+---
+
+## Créditos e Menção Honrosa
+
+- **Menção honrosa e agradecimento especial a [`Plane-Customer3162`](https://www.reddit.com/user/Plane-Customer3162/)** por ter disponibilizado os arquivos originais de boot do cartão que funcionava depois que eu havia perdido o conteúdo do meu cartão original — sem esse dump, a engenharia reversa e esta compilação híbrida não teriam sido possíveis.
+- **ArkOS** (`christianhaitian`), **ArkOS-K36** (`AeolusUX`), **dArkOSen** e à equipe do **PortMaster** pelos projetos incríveis para a comunidade.
+
+## Licença
+
+- Todos os scripts originais, documentação e assets próprios deste repositório estão sob a **[Licença MIT](LICENSE)**.
+- Os módulos do Kernel Linux `5.10.160` (`.ko`), arquivos Device Tree (`.dts`/`.dtb`) e o binário `exfat-fuse` em `rootfs_overlay/` são regidos pela licença **GPL-2.0**.
+- A biblioteca `libfuse2` (`libfuse.so.2.9.9`) é regida pela licença **LGPL-2.1**.
