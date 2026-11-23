@@ -109,6 +109,18 @@ sudo ./corrigir_cartao.sh /dev/sda
 sudo ./redimensionar_rootfs_9_5gb.sh /dev/sda
 ```
 
+### 5. [Experimental] Unlock Higher RAM Frequencies (`450 / 528 / 666 MHz`)
+By default, `darkosen-k36` keeps the Xinyuwei RAM safely locked at `328 MHz`. If you want to test whether your silicon can handle higher memory bandwidth (`450`, `528`, or `666 MHz`) after boot, enable the experimental DTB (`px30s-dmc-opp-table` + `lpddr3-params` + `auto-freq-en = 1`) and the on-device tester (`Options → Tools → Testar_RAM_Frequencia`):
+
+```bash
+# Enable experimental RAM frequencies (still boots safely at 328 MHz)
+sudo ./ativar_ram_experimental.sh /dev/sda
+
+# Revert back to locked 328 MHz DTB at any time
+sudo ./ativar_ram_experimental.sh /dev/sda --revert
+```
+> **Note:** On the handheld, `Testar_RAM_Frequencia.sh` applies frequencies temporarily and runs a 64 MB SHA-256 integrity test. If the board freezes at a higher clock, simply reboot to return automatically to `328 MHz`.
+
 ---
 
 ## Credits & Special Thanks

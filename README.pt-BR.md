@@ -94,6 +94,18 @@ sudo ./corrigir_cartao.sh /dev/sda
 sudo ./redimensionar_rootfs_9_5gb.sh /dev/sda
 ```
 
+### 5. [Experimental] Destravar Frequências Maiores de RAM (`450 / 528 / 666 MHz`)
+Por padrão, o `darkosen-k36` mantém a RAM Xinyuwei travada com segurança em `328 MHz`. Se você quiser testar se o chip da sua placa aguenta frequências maiores (`450`, `528` ou `666 MHz`) depois do boot, ative o DTB experimental (`px30s-dmc-opp-table` + `lpddr3-params` + `auto-freq-en = 1`) e o testador direto no portátil (**Options → Tools → Testar_RAM_Frequencia**):
+
+```bash
+# Ativar frequências experimentais de RAM (o boot continua seguro em 328 MHz)
+sudo ./ativar_ram_experimental.sh /dev/sda
+
+# Reverter para o DTB travado em 328 MHz a qualquer momento
+sudo ./ativar_ram_experimental.sh /dev/sda --revert
+```
+> **Nota:** No portátil, o `Testar_RAM_Frequencia.sh` aplica a frequência apenas de forma temporária e roda um teste de integridade SHA-256 de 64 MB. Se travar em alguma frequência, basta reiniciar o aparelho para voltar automaticamente para `328 MHz`.
+
 ---
 
 ## Créditos e Menção Honrosa
