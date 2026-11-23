@@ -2,15 +2,15 @@
 set -euo pipefail
 
 DEV="${1:-/dev/sda}"
-BASE_DIR="/home/leonardo/R36s/hibrido_darkos_k36"
+BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 OVERLAY="$BASE_DIR/rootfs_overlay"
 
 if [[ $EUID -ne 0 ]]; then
-    echo "Execute com: sudo $0 $DEV"
+    echo "Execute com / Run with: sudo $0 $DEV"
     exit 1
 fi
 
-echo "[1/6] Removendo trava temporária de automount do Linux (/run/udev/rules.d/90-udisks-inhibit.rules)..."
+# 1. Remove temporary udev inhibit rule if present
 if [[ -f /run/udev/rules.d/90-udisks-inhibit.rules ]]; then
     rm -f /run/udev/rules.d/90-udisks-inhibit.rules
     udevadm control --reload-rules 2>/dev/null || true
@@ -24,7 +24,7 @@ MNT_ROOT="$(mktemp -d)"
 mount "${DEV}1" "$MNT_BOOT"
 mount "${DEV}2" "$MNT_ROOT"
 
-echo "[2/6] Instalando Kernel limpo do ArkOS K36 (lw@git, 717MB reais), DTB calibrado (spk-volume = 0x03) e logos do dArkOSen..."
+echo "[1/5] Installing clean ArkOS K36 Kernel (717MB real RAM), calibrated DTB (spk-volume = 0x03) and dArkOSen boot logos..."
 if [[ -f "$BASE_DIR/Image_arkos_k36" ]]; then
     install -m 644 "$BASE_DIR/Image_arkos_k36" "$MNT_BOOT/Image"
 fi
@@ -47,7 +47,12 @@ if [[ -d "$BASE_DIR/battery_bmps" ]]; then
     done
 fi
 
-echo "[3/6] Aplicando estado de áudio original do ArkOS K36 (asound.state + spktoggle + fixvolume)..."
+echo "[2/5] Applying ArkOS K36 audio state (asound.state + spktoggle + fixvolume) and libfuse2..."
+if [[ -f "$OVERLAY/usr/lib/aarch64-linux-gnu/libfuse.so.2.9.9" ]]; then
+    install -m 644 "$OVERLAY/usr/lib/aarch64-linux-gnu/libfuse.so.2.9.9" \
+        "$MNT_ROOT/usr/lib/aarch64-linux-gnu/libfuse.so.2.9.9"
+    ln -sfn "libfuse.so.2.9.9" "$MNT_ROOT/usr/lib/aarch64-linux-gnu/libfuse.so.2"
+fi
 if [[ -f "$OVERLAY/etc/asound.state.k36" ]]; then
     mkdir -p "$MNT_ROOT/var/local" "$MNT_ROOT/var/lib/alsa"
     install -m 644 "$OVERLAY/etc/asound.state.k36" "$MNT_ROOT/var/local/asound.state"
@@ -71,14 +76,11 @@ fi
 EOF
 chmod 755 "$MNT_ROOT/usr/local/bin/spktoggle.sh"
 
-# Remover scripts de LED obsoletos
-rm -f "$MNT_ROOT/opt/system/System/Testar_e_Controlar_LED_K36.sh" \
-      "$MNT_ROOT/opt/system/System/Change LED to Red.sh" \
-      "$MNT_ROOT/opt/system/System/Change LED to Blue.sh" \
-      "$MNT_ROOT/opt/system/Change LED to Red.sh" \
-      "$MNT_ROOT/opt/system/Change LED to Blue.sh" 2>/dev/null || true
+# Ensure Mali UK 11.38 (r13p0-gbm) symlinks match Kernel 5.10.160 (g18p0)
+ln -sfn "libmali-bifrost-g31-rxp0-gbm.so" "$MNT_ROOT/usr/lib/aarch64-linux-gnu/libMali.so"
+ln -sfn "libmali-bifrost-g31-rxp0-gbm.so" "$MNT_ROOT/usr/lib/arm-linux-gnueabihf/libMali.so"
 
-echo "[4/6] Desativando InvertButtons no EmulationStation e RetroArch (A = Confirmar, B = Voltar)..."
+echo "[3/5] Fixing A/B button orientation in EmulationStation and RetroArch (A = Confirm, B = Back)..."
 if [[ -f "$MNT_ROOT/home/ark/.emulationstation/es_settings.cfg" ]]; then
     sed -i 's/<bool name="InvertButtons" value="true" \/>/<bool name="InvertButtons" value="false" \/>/g' \
         "$MNT_ROOT/home/ark/.emulationstation/es_settings.cfg"
@@ -90,9 +92,15 @@ for rcfg in "$MNT_ROOT/home/ark/.config/retroarch/retroarch.cfg" "$MNT_ROOT/home
     fi
 done
 
-echo "[5/6] Configurando Fuso Horário (America/Fortaleza UTC-3), sincronizando relógio com o PC e instalando Change Time.sh..."
-ln -sfn "/usr/share/zoneinfo/America/Fortaleza" "$MNT_ROOT/etc/localtime"
-echo "America/Fortaleza" > "$MNT_ROOT/etc/timezone"
+echo "[4/5] Installing persistent clock service (without RTC battery) and Change Time.sh..."
+# Automatically inherit host timezone if available, otherwise keep existing / UTC
+if [[ -L /etc/localtime ]]; then
+    HOST_TZ="$(readlink -f /etc/localtime | sed 's|^/usr/share/zoneinfo/||')"
+    if [[ -f "$MNT_ROOT/usr/share/zoneinfo/$HOST_TZ" ]]; then
+        ln -sfn "/usr/share/zoneinfo/$HOST_TZ" "$MNT_ROOT/etc/localtime"
+        echo "$HOST_TZ" > "$MNT_ROOT/etc/timezone"
+    fi
+fi
 
 mkdir -p "$MNT_ROOT/var/lib/systemd/timesync"
 touch "$MNT_ROOT/var/lib/systemd/timesync/clock"
@@ -116,11 +124,11 @@ EOF
 ln -sfn "/etc/systemd/system/save-clock.service" "$MNT_ROOT/etc/systemd/system/sysinit.target.wants/save-clock.service" 2>/dev/null || \
 ln -sfn "/etc/systemd/system/save-clock.service" "$MNT_ROOT/etc/systemd/system/multi-user.target.wants/save-clock.service"
 
-if [[ -f /tmp/change_time_k36.sh ]]; then
-    install -m 755 /tmp/change_time_k36.sh "$MNT_ROOT/opt/system/System/Change Time.sh"
+if [[ -f "$OVERLAY/usr/local/bin/change_time_k36.sh" ]]; then
+    install -m 755 "$OVERLAY/usr/local/bin/change_time_k36.sh" "$MNT_ROOT/opt/system/System/Change Time.sh"
 fi
 
-echo "[6/6] Limpando pastas temporárias (/tempthemes, /roms.tar), sincronizando e montando EASYROMS..."
+echo "[5/5] Cleaning temporary folders (/tempthemes, /roms.tar), syncing and mounting EASYROMS..."
 rm -rf "$MNT_ROOT/tempthemes" "$MNT_ROOT/roms.tar" 2>/dev/null || true
 chown -R 1000:1000 "$MNT_ROOT/home/ark/.emulationstation" "$MNT_ROOT/home/ark/.config/retroarch" "$MNT_ROOT/home/ark/.config/retroarch32"
 sync
@@ -128,16 +136,10 @@ umount "$MNT_BOOT"
 umount "$MNT_ROOT"
 rmdir "$MNT_BOOT" "$MNT_ROOT"
 
-MNT_ROMS="$(mktemp -d)"
-if mount "${DEV}3" "$MNT_ROMS" 2>/dev/null; then
-    rm -f "$MNT_ROMS/tools/Testar_e_Controlar_LED_K36.sh" 2>/dev/null || true
-    sync
-    umount "$MNT_ROMS"
+if [[ -n "${SUDO_USER:-}" ]]; then
+    sudo -u "$SUDO_USER" udisksctl mount -b "${DEV}3" 2>/dev/null || true
 fi
-rmdir "$MNT_ROMS"
-
-sudo -u leonardo udisksctl mount -b "${DEV}3" 2>/dev/null || true
 
 echo "=================================================================="
-echo " TUDO PRONTO! Kernel Limpo, Som 0x03, Logos dArkOSen e Hora UTC-3!"
+echo " DONE! Clean Kernel, Audio 0x03, dArkOSen Logos and Clock OK!"
 echo "=================================================================="

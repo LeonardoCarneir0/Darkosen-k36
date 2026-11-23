@@ -11,7 +11,7 @@
 set -euo pipefail
 
 DEV="${1:-/dev/sda}"
-BASE_DIR="/home/leonardo/R36s/hibrido_darkos_k36"
+BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 OVERLAY="$BASE_DIR/rootfs_overlay"
 DARKOS_IMG="$BASE_DIR/dArkOSen_R36_11112026.img"
 CACHE_DIR="$BASE_DIR/darkos_rootfs_cache"
@@ -87,15 +87,19 @@ dd if="$BASE_DIR/bootloader_16M.bin" of="$DEV" bs=1M count=16 conv=notrunc statu
 dd if="$BASE_DIR/boot_500M.fat" of="$DEV" bs=1M seek=16 count=500 conv=notrunc status=progress
 sync
 
-# 4. Recriar tabela GPT ajustada ao tamanho real do cartão SD (Part 1: 500M BOOT, Part 2: 12G ROOTFS ext4, Part 3: Restante EASYROMS exFAT)
-echo "[3/7] Configurando tabela de partições GPT (BOOT 500MB + ROOTFS 12GB ext4 + EASYROMS exFAT)..."
+# 4. Recriar tabela GPT ajustada ao tamanho real do cartão SD (Part 1: 500M BOOT, Part 2: 9.5G ROOTFS ext4, Part 3: Restante EASYROMS exFAT)
+echo "[3/7] Configurando tabela de partições GPT (BOOT 500MB + ROOTFS 9.5GB ext4 + EASYROMS exFAT no espaço restante)..."
 DISK_SECTORS="$(cat "/sys/block/$DEV_NAME/size")"
 P1_START=32768
 P1_END=1056767
 P2_START=1056768
-P2_END=20979711   # 9.5 GB (19.922.944 setores de 512 bytes) -> deixa ~2 GB livres no ROOTFS e dá +2.5 GB para o EASYROMS!
+P2_END=20979711   # 9.5 GB (19.922.944 setores de 512 bytes) -> suporta qualquer SD >= 16 GB (16/32/64/128/256/512 GB)
 P3_START=20979712
 P3_END=$(( DISK_SECTORS - 35 ))
+if (( DISK_SECTORS <= P3_START + 204800 )); then
+    echo "ABORTADO: O cartão SD alvo ($DEV) é menor que 16 GB! Use um cartão de 16 GB ou maior." >&2
+    exit 1
+fi
 
 gdisk "$DEV" >/dev/null <<EOF
 x
@@ -141,11 +145,10 @@ cp -f "$MNT_BOOT/rf3536k4ka.dtb" "$MNT_BOOT/rf3536k4ka.dtb.orig" 2>/dev/null || 
 install -m 644 "$BASE_DIR/rf3536k4ka.dtb" "$MNT_BOOT/rf3536k4ka.dtb"
 install -m 644 "$BASE_DIR/rf3536k3ka.dtb" "$MNT_BOOT/rf3536k3ka.dtb"
 
-# Copiar também Image e uInitrd do boot de fábrica que funciona, se disponível
-WORK_BOOT="/home/leonardo/Downloads/desgraça/r36s v20 clone only working boot"
-if [[ -f "$WORK_BOOT/Image" && -f "$WORK_BOOT/uInitrd" ]]; then
-    install -m 644 "$WORK_BOOT/Image" "$MNT_BOOT/Image"
-    install -m 644 "$WORK_BOOT/uInitrd" "$MNT_BOOT/uInitrd"
+# Usar Kernel limpo do ArkOS K36 (lw@git, 717MB reais), se extraído na pasta do projeto
+if [[ -f "$BASE_DIR/Image_arkos_k36" && -f "$BASE_DIR/uInitrd_arkos_k36" ]]; then
+    install -m 644 "$BASE_DIR/Image_arkos_k36" "$MNT_BOOT/Image"
+    install -m 644 "$BASE_DIR/uInitrd_arkos_k36" "$MNT_BOOT/uInitrd"
 fi
 
 cat > "$MNT_BOOT/extlinux/extlinux.conf" << 'EOF'
@@ -181,19 +184,16 @@ for kver in "5.10.160-gc18be26ca0ba-dirty" "5.10.160-ge8de3988c23f-dirty" "5.10.
     ln -sfn "5.10.160-gb9111f792d94-dirty" "$MNT_ROOT/usr/lib/modules/$kver"
 done
 
-# Driver Mali Bifrost r18p0 (UK 10.6) 64-bit compatível com Kernel 5.10.160 (g18p0)
-install -m 644 "$OVERLAY/usr/lib/aarch64-linux-gnu/libmali-bifrost-g31-rxp0-wayland-gbm.so" \
-    "$MNT_ROOT/usr/lib/aarch64-linux-gnu/libmali-bifrost-g31-rxp0-wayland-gbm.so"
-ln -sfn "libmali-bifrost-g31-rxp0-wayland-gbm.so" "$MNT_ROOT/usr/lib/aarch64-linux-gnu/libMali.so"
-
-# Driver Mali 32-bit (garantir link libMali.so -> libmali-bifrost-g31-rxp0-gbm.so)
-if [[ -f "$OVERLAY/usr/lib/arm-linux-gnueabihf/libmali-bifrost-g31-rxp0-gbm.so" ]]; then
-    install -m 644 "$OVERLAY/usr/lib/arm-linux-gnueabihf/libmali-bifrost-g31-rxp0-gbm.so" \
-        "$MNT_ROOT/usr/lib/arm-linux-gnueabihf/libmali-bifrost-g31-rxp0-gbm.so"
-    ln -sfn "libmali-bifrost-g31-rxp0-gbm.so" "$MNT_ROOT/usr/lib/arm-linux-gnueabihf/libMali.so"
-fi
+# Driver Mali Bifrost r13p0 (UK 11.38) compatível com Kernel 5.10.160 (g18p0)
+ln -sfn "libmali-bifrost-g31-rxp0-gbm.so" "$MNT_ROOT/usr/lib/aarch64-linux-gnu/libMali.so"
+ln -sfn "libmali-bifrost-g31-rxp0-gbm.so" "$MNT_ROOT/usr/lib/arm-linux-gnueabihf/libMali.so"
 
 # Suporte a montagem exFAT via FUSE (necessário pois Kernel 5.10.160 não tem CONFIG_EXFAT_FS nativo)
+if [[ -f "$OVERLAY/usr/lib/aarch64-linux-gnu/libfuse.so.2.9.9" ]]; then
+    install -m 644 "$OVERLAY/usr/lib/aarch64-linux-gnu/libfuse.so.2.9.9" \
+        "$MNT_ROOT/usr/lib/aarch64-linux-gnu/libfuse.so.2.9.9"
+    ln -sfn "libfuse.so.2.9.9" "$MNT_ROOT/usr/lib/aarch64-linux-gnu/libfuse.so.2"
+fi
 install -m 755 "$OVERLAY/usr/sbin/mount.exfat-fuse" "$MNT_ROOT/usr/sbin/mount.exfat-fuse"
 ln -sfn "mount.exfat-fuse" "$MNT_ROOT/usr/sbin/mount.exfat"
 ln -sfn "/usr/sbin/mount.exfat-fuse" "$MNT_ROOT/sbin/mount.exfat" 2>/dev/null || true

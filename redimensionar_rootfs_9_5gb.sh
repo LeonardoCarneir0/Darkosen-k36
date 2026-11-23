@@ -86,7 +86,9 @@ umount "$MNT_ROMS"
 rmdir "$MNT_ROMS"
 rm -rf "$TMP_ROMS_BAK"
 
-sudo -u leonardo udisksctl mount -b "${DEV}3" 2>/dev/null || true
+if [[ -n "${SUDO_USER:-}" ]]; then
+    sudo -u "$SUDO_USER" udisksctl mount -b "${DEV}3" 2>/dev/null || true
+fi
 
 echo "=================================================================="
 echo " CONCLUÍDO! ROOTFS reduzido para 9.5 GB (~2 GB livres) e"
