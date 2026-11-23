@@ -1,4 +1,4 @@
-# darkosen-k36
+# dArkOSen-K36
 
 [🇺🇸 Read in English (README.md)](README.md)
 
@@ -73,16 +73,16 @@ Os scripts de particionamento leem automaticamente o total exato de setores do s
 
 > **Aviso:** Os scripts possuem trava contra gravação em SSDs NVMe/discos não-removíveis, mas sempre confirme o dispositivo do seu leitor SD com `lsblk` (ex.: `/dev/sda`). **Não execute atualizações OTA oficiais do dArkOSen que sobrescrevam `/boot`**, pois elas trocam o Kernel `5.10.160` pelo `4.4.189`.
 
-### 1. Pré-requisitos (arquivos grandes ignorados via `.gitignore`)
-Coloque na raiz desta pasta:
-- `dArkOSen_R36_11112026.img` (imagem oficial do dArkOSen descompactada)
-- `bootloader_16M.bin`, `boot_500M.fat`, `Image_arkos_k36` e `uInitrd_arkos_k36` (extraídos da imagem `ArkOS_K36_v2.0_08112025.img`)
+### 1. Pré-requisitos
+Baixe e descompacte as duas imagens `.img` base em qualquer pasta do seu PC Linux (você **não precisa** copiá-las para dentro da pasta do projeto):
+- `ArkOS_K36_v2.0_08112025.img` (de onde o script lê automaticamente os 16 MB do bootloader `DDR V2.08` + a partição `BOOT` de 500 MB + o Kernel `5.10.160` limpo)
+- `dArkOSen_R36_11112026.img` (de onde o script extrai automaticamente o Debian 13 `glibc 2.41`, os temas e o `roms.tar`)
 
-### 2. Gravar um cartão SD do zero (16 GB / 32 GB / 64 GB / 128 GB+)
+### 2. Gravar um cartão SD do zero em um único comando (16 GB / 32 GB / 64 GB / 128 GB+)
 ```bash
-sudo ./montar_e_gravar_hibrido.sh /dev/sda
-sudo ./corrigir_cartao.sh /dev/sda
+sudo ./montar_e_gravar_hibrido.sh /dev/sda /caminho/para/ArkOS_K36_v2.0_08112025.img /caminho/para/dArkOSen_R36_11112026.img
 ```
+*(Se preferir colocar os dois `.img` dentro da pasta do repositório, basta rodar `sudo ./montar_e_gravar_hibrido.sh /dev/sda`.)*
 
 ### 3. Aplicar apenas as correções mais recentes em um cartão já gravado
 ```bash

@@ -88,16 +88,16 @@ The partitioning scripts automatically read the exact sector count of your targe
 
 > **Warning:** Scripts refuse to write to NVMe or non-removable drives, but always double-check your SD card device with `lsblk` (e.g., `/dev/sda`). **Do not run official dArkOSen OTA updates that overwrite `/boot`**, as they will replace Kernel `5.10.160` with `4.4.189`.
 
-### 1. Prerequisites (large binaries excluded via `.gitignore`)
-Place the following files in the repository root:
-- `dArkOSen_R36_11112026.img` (extracted dArkOSen image)
-- `bootloader_16M.bin`, `boot_500M.fat`, `Image_arkos_k36`, and `uInitrd_arkos_k36` (extracted from `ArkOS_K36_v2.0_08112025.img`)
+### 1. Prerequisites
+Download and extract the two base `.img` files anywhere on your Linux PC (you **do not** need to copy them into this repository folder):
+- `ArkOS_K36_v2.0_08112025.img` (used automatically for the 16 MB `DDR V2.08` bootloader + 500 MB `BOOT` partition + clean `5.10.160` kernel)
+- `dArkOSen_R36_11112026.img` (used automatically for the Debian 13 `glibc 2.41` rootfs, themes, and `roms.tar`)
 
-### 2. Build & Flash a New SD Card (16 GB / 32 GB / 64 GB / 128 GB+)
+### 2. Build & Flash a New SD Card in One Command (16 GB / 32 GB / 64 GB / 128 GB+)
 ```bash
-sudo ./montar_e_gravar_hibrido.sh /dev/sda
-sudo ./corrigir_cartao.sh /dev/sda
+sudo ./montar_e_gravar_hibrido.sh /dev/sda /path/to/ArkOS_K36_v2.0_08112025.img /path/to/dArkOSen_R36_11112026.img
 ```
+*(Or place both `.img` files inside the repository folder and simply run `sudo ./montar_e_gravar_hibrido.sh /dev/sda`.)*
 
 ### 3. Apply Latest Fixes to an Existing Hybrid SD Card
 ```bash
