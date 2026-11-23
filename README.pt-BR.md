@@ -19,6 +19,13 @@ Quem tem essa revisão específica de clone (**R36S-V20 `2025-05-18` lote `2549`
 
 ## Raio-X Forense do Hardware (`R36S-V20 2025-05-18 2549`)
 
+### Foto de Referência da Placa-Mãe
+Se você está em dúvida se o seu clone tem exatamente esta revisão de hardware, abra a tampa traseira e procure pela placa preta com as marcações **`R36S-V20 2025-05-18`** e **`HLS RoHS 2549`**, com um único chip de RAM **`XINYUWEI`** ao lado do processador **`Rockchip RK3326-S`** e do PMIC **`RK817-5`**:
+
+<p align="center">
+  <img src="docs/r36s-v20-2025-05-18-2549-motherboard.jpg" alt="Placa-mãe de referência R36S-V20 2025-05-18 (Lote 2549)" width="480" />
+</p>
+
 Dados coletados diretamente do hardware (`rockchip-otp0`, `MIDR_EL1`, `/proc/iomem`, `idbloader` e `dmesg`):
 
 | Componente | Especificação Real Detectada | Impacto no Sistema |

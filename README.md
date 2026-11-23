@@ -19,6 +19,13 @@ Owners of the **R36S-V20 `2025-05-18` (batch `2549`) / K36** clone revision were
 
 ## Forensic Hardware Findings (`R36S-V20 2025-05-18 2549`)
 
+### Reference Motherboard Photo
+If you're unsure whether your clone matches this exact hardware revision, open the back shell and look for the black PCB marked **`R36S-V20 2025-05-18`** and **`HLS RoHS 2549`**, with a single **`XINYUWEI`** RAM chip next to the **`Rockchip RK3326-S`** SoC and **`RK817-5`** PMIC:
+
+<p align="center">
+  <img src="docs/r36s-v20-2025-05-18-2549-motherboard.jpg" alt="R36S-V20 2025-05-18 (Batch 2549) Reference Motherboard" width="480" />
+</p>
+
 Collected directly from hardware registers (`rockchip-otp0`, `MIDR_EL1`, `/proc/iomem`, `idbloader`, and kernel `dmesg`):
 
 | Component | Actual Hardware Detected | System Impact |
