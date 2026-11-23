@@ -11,3 +11,6 @@ uInitrd_arkos_k36
 bootloader_16M.bin
 rootfs_overlay/usr/lib/aarch64-linux-gnu/libmali-bifrost-g31-rxp0-wayland-gbm.so
 rootfs_overlay/usr/lib/arm-linux-gnueabihf/libmali-bifrost-g31-rxp0-gbm.so
+
+__pycache__/
+*.pyc

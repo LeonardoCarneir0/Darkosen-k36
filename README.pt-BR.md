@@ -76,42 +76,47 @@ Os scripts de particionamento leem automaticamente o total exato de setores do s
 
 ---
 
-## Como Usar
+## Como Usar (Linux & Windows WSL2)
 
-> **Aviso:** Os scripts possuem trava contra gravação em SSDs NVMe/discos não-removíveis, mas sempre confirme o dispositivo do seu leitor SD com `lsblk` (ex.: `/dev/sda`). **Não execute atualizações OTA oficiais do dArkOSen que sobrescrevam `/boot`**, pois elas trocam o Kernel `5.10.160` pelo `4.4.189`.
+> **Aviso:** O `darkosen_k36.py` bloqueia SSDs NVMe e o disco do sistema, além de pedir confirmação explícita antes de formatar o cartão SD. Sempre confira o dispositivo correto com `lsblk` (ex.: `/dev/sda` ou `/dev/sdb`). **Não execute atualizações OTA oficiais do dArkOSen que sobrescrevam `/boot`**, pois elas trocam o Kernel `5.10.160` pelo `4.4.189`.
 
-### 1. Pré-requisitos
-Baixe e descompacte as duas imagens `.img` base em qualquer pasta do seu PC Linux (você **não precisa** copiá-las para dentro da pasta do projeto):
-- `ArkOS_K36_v2.0_08112025.img` (de onde o script lê automaticamente os 16 MB do bootloader `DDR V2.08` + a partição `BOOT` de 500 MB + o Kernel `5.10.160` limpo)
-- `dArkOSen_R36_11112026.img` (de onde o script extrai automaticamente o Debian 13 `glibc 2.41`, os temas e o `roms.tar`)
+### 1. Verificar Dependências (Linux ou Windows WSL2 + `usbipd-win`)
+```bash
+python3 darkosen_k36.py check
+```
+*(No Windows: instale WSL2 + Ubuntu e `usbipd-win`, conecte o leitor USB de cartão SD no WSL2 e rode os comandos abaixo dentro do Ubuntu. Se o adaptador USB reportar `removable=0` no WSL2, passe `--allow-non-removable`.)*
 
 ### 2. Gravar um cartão SD do zero em um único comando (16 GB / 32 GB / 64 GB / 128 GB+)
+Baixe e descompacte `ArkOS_K36_v2.0_08112025.img` e `dArkOSen_R36_11112026.img` em qualquer pasta do seu PC (não precisa copiar para dentro do projeto):
 ```bash
-sudo ./montar_e_gravar_hibrido.sh /dev/sda /caminho/para/ArkOS_K36_v2.0_08112025.img /caminho/para/dArkOSen_R36_11112026.img
+sudo python3 darkosen_k36.py build \
+  --device /dev/sda \
+  --k36 /caminho/para/ArkOS_K36_v2.0_08112025.img \
+  --darkos /caminho/para/dArkOSen_R36_11112026.img
 ```
-*(Se preferir colocar os dois `.img` dentro da pasta do repositório, basta rodar `sudo ./montar_e_gravar_hibrido.sh /dev/sda`.)*
+*(Flags opcionais: `--rootfs-gb 9.5`, `--experimental-ram`, `--timezone UTC`, `--dry-run`.)*
 
 ### 3. Aplicar apenas as correções mais recentes em um cartão já gravado
 ```bash
-sudo ./corrigir_cartao.sh /dev/sda
+sudo python3 darkosen_k36.py patch --device /dev/sda
 ```
 
 ### 4. Redimensionar um cartão de 12 GB `ROOTFS` para 9.5 GB `ROOTFS`
 ```bash
-sudo ./redimensionar_rootfs_9_5gb.sh /dev/sda
+sudo python3 darkosen_k36.py resize --device /dev/sda --rootfs-gb 9.5
 ```
 
 ### 5. [Experimental] Destravar Frequências Maiores de RAM (`450 / 528 / 666 MHz`)
-Por padrão, o `darkosen-k36` mantém a RAM Xinyuwei travada com segurança em `328 MHz`. Se você quiser testar se o chip da sua placa aguenta frequências maiores (`450`, `528` ou `666 MHz`) depois do boot, ative o DTB experimental (`px30s-dmc-opp-table` + `lpddr3-params` + `auto-freq-en = 1`) e o testador direto no portátil (**Options → Tools → Testar_RAM_Frequencia**):
+Por padrão, o `darkosen-k36` mantém a RAM Xinyuwei travada com segurança em `328 MHz`. Se quiser testar se o chip da sua placa aguenta frequências maiores (**testado estável até `528 MHz` na nossa unidade lote `2549`!**) depois do boot:
 
 ```bash
 # Ativar frequências experimentais de RAM (o boot continua seguro em 328 MHz)
-sudo ./ativar_ram_experimental.sh /dev/sda
+sudo python3 darkosen_k36.py ram-mode --device /dev/sda --mode experimental
 
 # Reverter para o DTB travado em 328 MHz a qualquer momento
-sudo ./ativar_ram_experimental.sh /dev/sda --revert
+sudo python3 darkosen_k36.py ram-mode --device /dev/sda --mode safe
 ```
-> **Nota:** No portátil, o `Testar_RAM_Frequencia.sh` aplica a frequência apenas de forma temporária e roda um teste de integridade SHA-256 de 64 MB. Se travar em alguma frequência, basta reiniciar o aparelho para voltar automaticamente para `328 MHz`.
+> **Nota:** No portátil, abra **Options → Tools → `Testar_RAM_Frequencia`**. A alteração é **temporária** e inclui um teste SHA-256 de 64 MB — se travar em alguma frequência, basta reiniciar para voltar automaticamente para `328 MHz`.
 
 ---
 

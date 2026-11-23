@@ -80,53 +80,58 @@ The partitioning scripts automatically read the exact sector count of your targe
 
 | File / Folder | Description |
 |---|---|
-| `montar_e_gravar_hibrido.sh` | Builds and flashes a fresh hybrid SD card from scratch (supports any SD card >= 16 GB). |
-| `corrigir_cartao.sh` | Fast (~5s) patcher for an already-flashed hybrid SD card (clean kernel, `0x03` audio DTB, A/B fix, dArkOSen logos, persistent clock). |
-| `redimensionar_rootfs_9_5gb.sh` | Shrinks an existing 12 GB `ROOTFS` partition to 9.5 GB and expands `EASYROMS` across all remaining SD space without losing data. |
-| `rf3536k4ka_calibrated.dts` / `.dtb` | Calibrated DTS source and compiled DTBs (`RK3326-S`, Xinyuwei `328 MHz`, `spk-volume = 0x03`). |
+| `darkosen_k36.py` | **Unified Python CLI tool** (`check`, `build`, `patch`, `ram-mode`, `resize`) supporting native Linux and Windows via **WSL2 + `usbipd-win`**. |
+| `rf3536k4ka_calibrated.dts` / `.dtb` | Calibrated DTS source and compiled safe DTBs (`RK3326-S`, Xinyuwei `328 MHz`, `spk-volume = 0x03`). |
+| `rf3536k4ka_ram_test_666.dts` / `.dtb` | Experimental DTB unlocking `450 / 528 / 666 MHz` in `px30s-dmc-opp-table` + `lpddr3-params` (boots safely at `328 MHz`). |
+| `Testar_RAM_Frequencia.sh` | On-device handheld tool (`Options → Tools`) to test `450 / 528 / 666 MHz` temporarily with a 64 MB SHA-256 integrity test. |
+| `Diagnostico_Hardware_Real.sh` | On-device forensic hardware diagnostic script. |
 | `prepare_k36_overlay.py` | Helper script to calibrate the DTS and extract K36 kernel modules/binaries. |
-| `Diagnostico_Hardware_Real.sh` | Forensic hardware diagnostic script to run directly on the handheld. |
 | `rootfs_overlay/` | Kernel `5.10.160` modules, `libfuse.so.2.9.9`, `mount.exfat-fuse`, `asound.state.k36`, `hp_autoswitch.sh`, `change_time_k36.sh`, and `play_joystick` configs. |
 | `darkosen_logo_640x480.bmp` & `battery_bmps/` | U-Boot-compatible boot splash and charging animation BMPs. |
 
 ---
 
-## Usage
+## Usage (Linux & Windows WSL2)
 
-> **Warning:** Scripts refuse to write to NVMe or non-removable drives, but always double-check your SD card device with `lsblk` (e.g., `/dev/sda`). **Do not run official dArkOSen OTA updates that overwrite `/boot`**, as they will replace Kernel `5.10.160` with `4.4.189`.
+> **Warning:** `darkosen_k36.py` blocks NVMe and root system drives, and asks for explicit device confirmation before erasing an SD card. Always double-check your SD card device with `lsblk` (e.g., `/dev/sda` or `/dev/sdb`). **Do not run official dArkOSen OTA updates that overwrite `/boot`**, as they will replace Kernel `5.10.160` with `4.4.189`.
 
-### 1. Prerequisites
-Download and extract the two base `.img` files anywhere on your Linux PC (you **do not** need to copy them into this repository folder):
-- `ArkOS_K36_v2.0_08112025.img` (used automatically for the 16 MB `DDR V2.08` bootloader + 500 MB `BOOT` partition + clean `5.10.160` kernel)
-- `dArkOSen_R36_11112026.img` (used automatically for the Debian 13 `glibc 2.41` rootfs, themes, and `roms.tar`)
+### 1. Check Dependencies (Linux or Windows WSL2 + `usbipd-win`)
+```bash
+python3 darkosen_k36.py check
+```
+*(On Windows: install WSL2 + Ubuntu and `usbipd-win`, attach your USB SD card reader into WSL2, then run the commands below inside Ubuntu. If your USB adapter reports `removable=0` in WSL2, add `--allow-non-removable`.)*
 
 ### 2. Build & Flash a New SD Card in One Command (16 GB / 32 GB / 64 GB / 128 GB+)
+Download and extract `ArkOS_K36_v2.0_08112025.img` and `dArkOSen_R36_11112026.img` anywhere on your PC (no need to copy them into this folder):
 ```bash
-sudo ./montar_e_gravar_hibrido.sh /dev/sda /path/to/ArkOS_K36_v2.0_08112025.img /path/to/dArkOSen_R36_11112026.img
+sudo python3 darkosen_k36.py build \
+  --device /dev/sda \
+  --k36 /path/to/ArkOS_K36_v2.0_08112025.img \
+  --darkos /path/to/dArkOSen_R36_11112026.img
 ```
-*(Or place both `.img` files inside the repository folder and simply run `sudo ./montar_e_gravar_hibrido.sh /dev/sda`.)*
+*(Optional flags: `--rootfs-gb 9.5`, `--experimental-ram`, `--timezone UTC`, `--dry-run`.)*
 
-### 3. Apply Latest Fixes to an Existing Hybrid SD Card
+### 3. Patch an Existing Hybrid SD Card
 ```bash
-sudo ./corrigir_cartao.sh /dev/sda
+sudo python3 darkosen_k36.py patch --device /dev/sda
 ```
 
 ### 4. Resize an Existing 12 GB `ROOTFS` Card to 9.5 GB `ROOTFS`
 ```bash
-sudo ./redimensionar_rootfs_9_5gb.sh /dev/sda
+sudo python3 darkosen_k36.py resize --device /dev/sda --rootfs-gb 9.5
 ```
 
 ### 5. [Experimental] Unlock Higher RAM Frequencies (`450 / 528 / 666 MHz`)
-By default, `darkosen-k36` keeps the Xinyuwei RAM safely locked at `328 MHz`. If you want to test whether your silicon can handle higher memory bandwidth (`450`, `528`, or `666 MHz`) after boot, enable the experimental DTB (`px30s-dmc-opp-table` + `lpddr3-params` + `auto-freq-en = 1`) and the on-device tester (`Options → Tools → Testar_RAM_Frequencia`):
+By default, `darkosen-k36` keeps the Xinyuwei RAM safely locked at `328 MHz`. To test whether your silicon can handle higher memory bandwidth (**tested stable up to `528 MHz` on our batch `2549` unit!**) after boot:
 
 ```bash
 # Enable experimental RAM frequencies (still boots safely at 328 MHz)
-sudo ./ativar_ram_experimental.sh /dev/sda
+sudo python3 darkosen_k36.py ram-mode --device /dev/sda --mode experimental
 
 # Revert back to locked 328 MHz DTB at any time
-sudo ./ativar_ram_experimental.sh /dev/sda --revert
+sudo python3 darkosen_k36.py ram-mode --device /dev/sda --mode safe
 ```
-> **Note:** On the handheld, `Testar_RAM_Frequencia.sh` applies frequencies temporarily and runs a 64 MB SHA-256 integrity test. If the board freezes at a higher clock, simply reboot to return automatically to `328 MHz`.
+> **Note:** On the handheld, open **Options → Tools → `Testar_RAM_Frequencia`**. Changes are **temporary** and include a 64 MB SHA-256 test — if the board freezes at a higher clock, simply reboot to return automatically to `328 MHz`.
 
 ---
 
