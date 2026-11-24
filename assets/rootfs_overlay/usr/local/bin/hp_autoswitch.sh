@@ -7,6 +7,8 @@ CARD=0
 log() { echo "hp_autoswitch: $*"; }
 RE_J="name='Headphone Jack'[^:]*: values=(on|off)"
 RE_P="numid=([0-9]+),iface=MIXER,name='Playback Path'[^:]*: values=([0-9]+)"
+RE_V="name='Playback Volume'[^:]*: values=([0-9]+),([0-9]+)"
+MAX_SPK_VOL="${HPAS_MAX_SPK_VOL:-220}"
 
 # espera o mixer existir (boot)
 n=0
@@ -36,6 +38,14 @@ apply() {
             log "jack=$j: Playback Path $p -> $name"
         else
             log "FALHA ao ajustar Playback Path para $name"
+        fi
+    fi
+    # Limitador de protecao do alto-falante interno (teto seguro = 220/255 = -13.1 dB)
+    if [ "$name" = "SPK" ] && [[ $out =~ $RE_V ]]; then
+        local vl="${BASH_REMATCH[1]}" vr="${BASH_REMATCH[2]}"
+        if [ "${vl:-0}" -gt "$MAX_SPK_VOL" ] || [ "${vr:-0}" -gt "$MAX_SPK_VOL" ]; then
+            amixer -q -c "$CARD" cset iface=MIXER,name='Playback Volume' "${MAX_SPK_VOL},${MAX_SPK_VOL}" >/dev/null 2>&1
+            log "limitador SPK: Playback Volume ${vl},${vr} -> ${MAX_SPK_VOL},${MAX_SPK_VOL}"
         fi
     fi
 }

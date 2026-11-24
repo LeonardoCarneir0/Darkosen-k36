@@ -45,12 +45,13 @@ def calibrate_dts(source_dts: Path, out_dts: Path, out_dtb: Path) -> None:
             flags=re.S,
         )
 
-    # 4. Calibrate battery table (2808 mAh) and speaker volume (0x03)
+    # 4. Calibrate battery table (2808 mAh) and speaker attenuation (0x23 = 35 = -13.125 dB = ALSA 220/255)
     dts = dts.replace(
         "ocv_table = <0xdac 0xdc1 0xdda 0xded 0xdfc 0xe08 0xe12 0xe1f 0xe2e 0xe49 0xe69 0xe82 0xe9f 0xec0 0xee4 0xf0d 0xf39 0xf6a 0xfa1 0xfe5 0x1054>;\n\t\t\t\tdesign_capacity = <0xb10>;\n\t\t\t\tdesign_qmax = <0xc2b>;",
         "ocv_table = <0xdac 0xdcb 0xde6 0xdfa 0xe0b 0xe1b 0xe2c 0xe41 0xe5b 0xe86 0xeb7 0xee2 0xf09 0xf2e 0xf4f 0xf76 0xfa6 0xfd3 0xff1 0x1009 0x104c>;\n\t\t\t\tdesign_capacity = <0xaf8>;\n\t\t\t\tdesign_qmax = <0xc11>;",
     )
-    dts = dts.replace("spk-volume = <0x0b>;", "spk-volume = <0x03>;")
+    dts = dts.replace("spk-volume = <0x0b>;", "spk-volume = <0x23>;")
+    dts = dts.replace("spk-volume = <0x03>;", "spk-volume = <0x23>;")
 
     out_dts.parent.mkdir(parents=True, exist_ok=True)
     out_dts.write_text(dts)

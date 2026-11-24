@@ -1857,7 +1857,7 @@
 				pinctrl-names = "default";
 				pinctrl-0 = <0x69>;
 				hp-volume = <0x14>;
-				spk-volume = <0x03>;
+				spk-volume = <0x23>;
 				status = "okay";
 				phandle = <0xc7>;
 			};
