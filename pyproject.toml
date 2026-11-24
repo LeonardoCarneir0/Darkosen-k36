@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "darkosen-k36"
+version = "1.1.0"
+description = "Hybrid dArkOSen (Debian 13) + ArkOS K36 (Kernel 5.10.160) firmware builder & patcher for R36S-V20 2025-05-18 (Batch 2549) / K36"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.9"
+authors = [
+    { name = "Leonardo" }
+]
+keywords = ["r36s", "k36", "rk3326", "arkos", "darkos", "retrogaming", "firmware"]
+classifiers = [
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+]
+
+[project.scripts]
+darkosen-k36 = "darkosen_k36.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["darkosen_k36*"]

@@ -76,6 +76,30 @@ Os scripts de particionamento leem automaticamente o total exato de setores do s
 
 ---
 
+## Arquitetura do Projeto
+
+```text
+darkosen-k36/
+├── pyproject.toml                  # Metadados PEP 621 e definição do pacote Python
+├── darkosen_k36.py                 # Wrapper CLI (`python3 darkosen_k36.py ...`)
+├── darkosen_k36/                   # Pacote Python Modular
+│   ├── cli.py                      # ArgumentParser e roteamento de subcomandos
+│   ├── config.py                   # Caminhos, constantes GPT e templates de configuração
+│   ├── disk.py                     # Validação de segurança de disco e particionamento GPT
+│   ├── patcher.py                  # Patchers de BOOT, ROOTFS, RetroArch, áudio e relógio
+│   ├── builder.py                  # Fluxos principais (check, build, patch, ram-mode, resize)
+│   ├── overlay_extractor.py        # Compilador de calibração DTS e extrator de overlay do K36
+│   └── utils.py                    # Logs, execução de comandos e detecção de WSL2/fuso horário
+├── assets/                         # Recursos estáticos de hardware e sistema organizados por categoria
+│   ├── dtb/                        # Arquivos DTS/DTB calibrados (328 MHz seguro e 666 MHz experimental)
+│   ├── boot_logos/                 # Logos de boot 640×480 e ícones de carregamento de bateria 220×110
+│   ├── device_tools/               # Scripts para o portátil (Diagnostico_Hardware_Real.sh, Testar_RAM_Frequencia.sh)
+│   └── rootfs_overlay/             # Módulos do Kernel 5.10.160, libfuse2, exfat-fuse, ALSA e controles play_joystick
+└── docs/                           # Fotos de referência da placa-mãe e documentação
+```
+
+---
+
 ## Como Usar (Linux & Windows WSL2)
 
 > **Aviso:** O `darkosen_k36.py` bloqueia SSDs NVMe e o disco do sistema, além de pedir confirmação explícita antes de formatar o cartão SD. Sempre confira o dispositivo correto com `lsblk` (ex.: `/dev/sda` ou `/dev/sdb`). **Não execute atualizações OTA oficiais do dArkOSen que sobrescrevam `/boot`**, pois elas trocam o Kernel `5.10.160` pelo `4.4.189`.

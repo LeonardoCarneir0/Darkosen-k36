@@ -78,16 +78,25 @@ The partitioning scripts automatically read the exact sector count of your targe
 
 ## Repository Layout
 
-| File / Folder | Description |
-|---|---|
-| `darkosen_k36.py` | **Unified Python CLI tool** (`check`, `build`, `patch`, `ram-mode`, `resize`) supporting native Linux and Windows via **WSL2 + `usbipd-win`**. |
-| `rf3536k4ka_calibrated.dts` / `.dtb` | Calibrated DTS source and compiled safe DTBs (`RK3326-S`, Xinyuwei `328 MHz`, `spk-volume = 0x03`). |
-| `rf3536k4ka_ram_test_666.dts` / `.dtb` | Experimental DTB unlocking `450 / 528 / 666 MHz` in `px30s-dmc-opp-table` + `lpddr3-params` (boots safely at `328 MHz`). |
-| `Testar_RAM_Frequencia.sh` | On-device handheld tool (`Options → Tools`) to test `450 / 528 / 666 MHz` temporarily with a 64 MB SHA-256 integrity test. |
-| `Diagnostico_Hardware_Real.sh` | On-device forensic hardware diagnostic script. |
-| `prepare_k36_overlay.py` | Helper script to calibrate the DTS and extract K36 kernel modules/binaries. |
-| `rootfs_overlay/` | Kernel `5.10.160` modules, `libfuse.so.2.9.9`, `mount.exfat-fuse`, `asound.state.k36`, `hp_autoswitch.sh`, `change_time_k36.sh`, and `play_joystick` configs. |
-| `darkosen_logo_640x480.bmp` & `battery_bmps/` | U-Boot-compatible boot splash and charging animation BMPs. |
+```text
+darkosen-k36/
+├── pyproject.toml                  # PEP 621 package metadata & CLI script definition
+├── darkosen_k36.py                 # CLI entrypoint wrapper (`python3 darkosen_k36.py ...`)
+├── darkosen_k36/                   # Modular Python Package
+│   ├── cli.py                      # ArgumentParser & subcommand routing
+│   ├── config.py                   # Paths, GPT constants, and system templates
+│   ├── disk.py                     # Block device safety validation & dynamic GPT layout
+│   ├── patcher.py                  # BOOT, ROOTFS, RetroArch, audio, and clock patchers
+│   ├── builder.py                  # High-level workflows (check, build, patch, ram-mode, resize)
+│   ├── overlay_extractor.py        # DTS calibration compiler & K36 ext4 overlay extractor
+│   └── utils.py                    # Logging, shell execution, WSL2/timezone helpers
+├── assets/                         # Static hardware & OS assets organized by category
+│   ├── dtb/                        # Calibrated safe (328 MHz) & experimental (666 MHz) DTS/DTB files
+│   ├── boot_logos/                 # 640×480 U-Boot splash & 220×110 battery charging BMPs
+│   ├── device_tools/               # On-device scripts (Diagnostico_Hardware_Real.sh, Testar_RAM_Frequencia.sh)
+│   └── rootfs_overlay/             # Kernel 5.10.160 modules, libfuse2, exfat-fuse, ALSA state, and play_joystick configs
+└── docs/                           # Reference hardware photos & documentation
+```
 
 ---
 
