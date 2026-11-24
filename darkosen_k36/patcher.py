@@ -298,6 +298,23 @@ def apply_rootfs_patches(
     )
     write_text(mnt_root / "usr/local/bin/fixvolume.sh", FIXVOLUME_SH, 0o755, dry_run=dry_run)
     write_text(mnt_root / "usr/local/bin/spktoggle.sh", SPKTOGGLE_SH, 0o755, dry_run=dry_run)
+    safe_copy_file(
+        OVERLAY_DIR / "usr/local/bin/hp_autoswitch.sh",
+        mnt_root / "usr/local/bin/hp_autoswitch.sh",
+        0o755,
+        dry_run=dry_run,
+    )
+    if safe_copy_file(
+        OVERLAY_DIR / "etc/systemd/system/hp_autoswitch.service",
+        mnt_root / "etc/systemd/system/hp_autoswitch.service",
+        0o644,
+        dry_run=dry_run,
+    ):
+        safe_symlink(
+            "/etc/systemd/system/hp_autoswitch.service",
+            mnt_root / "etc/systemd/system/multi-user.target.wants/hp_autoswitch.service",
+            dry_run=dry_run,
+        )
 
     # A/B button orientation (A = Confirm, B = Back)
     es_cfg = mnt_root / "home/ark/.emulationstation/es_settings.cfg"

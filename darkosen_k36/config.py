@@ -82,7 +82,13 @@ ZRAM_ALGORITHM=lz4
 """
 
 FIXVOLUME_SH = """#!/bin/bash
-amixer -c 0 cset iface=MIXER,name='Playback Path' SPK >/dev/null 2>&1 || true
+if ls /proc/asound/card[1-9]*/pcm0p >/dev/null 2>&1; then
+    amixer -c 0 cset iface=MIXER,name='Playback Path' OFF >/dev/null 2>&1 || true
+elif amixer -c 0 contents 2>/dev/null | grep -A2 "name='Headphone Jack'" | grep -q "values=on"; then
+    amixer -c 0 cset iface=MIXER,name='Playback Path' HP >/dev/null 2>&1 || true
+else
+    amixer -c 0 cset iface=MIXER,name='Playback Path' SPK >/dev/null 2>&1 || true
+fi
 amixer -c 0 cset iface=MIXER,name='Speaker Switch' on >/dev/null 2>&1 || true
 amixer -c 0 cset iface=MIXER,name='Playback Volume' 220,220 >/dev/null 2>&1 || true
 exit 0

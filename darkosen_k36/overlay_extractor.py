@@ -53,6 +53,9 @@ def calibrate_dts(source_dts: Path, out_dts: Path, out_dtb: Path) -> None:
     dts = dts.replace("spk-volume = <0x0b>;", "spk-volume = <0x23>;")
     dts = dts.replace("spk-volume = <0x03>;", "spk-volume = <0x23>;")
 
+    # 5. Lock USB-C OTG controller (usb@ff300000) to Host mode so USB-C DACs never drop on loose contact
+    dts = dts.replace('dr_mode = "otg";', 'dr_mode = "host";')
+
     out_dts.parent.mkdir(parents=True, exist_ok=True)
     out_dts.write_text(dts)
     subprocess.run(
