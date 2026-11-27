@@ -328,6 +328,20 @@ def apply_rootfs_patches(
             dry_run=dry_run,
         )
 
+    # USB Tethering & USB Ethernet udev hotplug
+    safe_copy_file(
+        NETWORK_DIR / "usb_tether_hotplug.sh",
+        mnt_root / "usr/local/bin/usb_tether_hotplug.sh",
+        0o755,
+        dry_run=dry_run,
+    )
+    safe_copy_file(
+        NETWORK_DIR / "91-k36-usb-tethering.rules",
+        mnt_root / "etc/udev/rules.d/91-k36-usb-tethering.rules",
+        0o644,
+        dry_run=dry_run,
+    )
+
     # A/B button orientation (A = Confirm, B = Back)
     es_cfg = mnt_root / "home/ark/.emulationstation/es_settings.cfg"
     if not dry_run and es_cfg.exists():

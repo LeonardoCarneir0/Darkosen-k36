@@ -1,0 +1,4 @@
+# Automatic module loading (with vermagic fallback) and DHCP bring-up for USB Tethering
+# (Android RNDIS / CDC-NCM / CDC-ECM, iPhone ipheth, and ASIX/Realtek USB Ethernet)
+ACTION=="add", SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_interface", ENV{MODALIAS}=="usb:*", RUN+="/usr/local/bin/usb_tether_hotplug.sh usb-modload $env{MODALIAS}"
+ACTION=="add", SUBSYSTEM=="net", SUBSYSTEMS=="usb", ENV{DEVTYPE}!="wlan", KERNEL!="wlan*", RUN+="/bin/systemd-run --no-block /usr/local/bin/usb_tether_hotplug.sh net-up %k"

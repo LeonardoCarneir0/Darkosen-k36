@@ -78,7 +78,7 @@ def cmd_check(args: argparse.Namespace) -> None:
 
     if missing:
         print()
-        warn("Install missing packages on Debian/Ubuntu/WSL: sudo apt install gdisk e2fsprogs exfatprogs rsync dosfstools")
+        warn("Install missing packages on Debian/Ubuntu/WSL: sudo apt install gdisk e2fsprogs exfatprogs rsync dosfstools zstd")
         sys.exit(1)
     ok("All required tools and repository assets are ready!")
 
