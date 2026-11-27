@@ -70,9 +70,10 @@ The partitioning scripts automatically read the exact sector count of your targe
 3. **Mali-G31 GPU (`UK 11.38`) alignment:** Points both 64-bit and 32-bit `libMali.so` symlinks to `libmali-bifrost-g31-rxp0-gbm.so` (`r13p0` / **UK 11.38**), fixing `file /dev/mali0 is not of a compatible version (user 10.6, kernel 11.38)`.
 4. **328 MHz RAM Lock + 512 MB ZRam (`lz4`):** Disables `opp-450000000` and `opp-528000000` in the calibrated DTB, locks `/etc/dmc-settings.conf` to `328000000`, and enables 512 MB `lz4` ZRam swap on boot.
 5. **Full `play_joystick` Mapping & A/B Button Fix:** Injects the `play_joystick` GUID into EmulationStation, RetroArch 64/32-bit, system/PortMaster `gamecontrollerdb.txt`, `buttonmon.sh`, `ogage`, and `fn_menu_watcher.sh`; sets `InvertButtons = false` (`A` = Confirm, `B` = Back).
-6. **Clean Audio (`RK817`) with Zero Clipping at 100%:** Sets hardware speaker gain to **`spk-volume = <0x03>;`** in the DTB, restores the authentic K36 `/var/local/asound.state` (`state.rockchiprk817`, `Playback Path = SPK`), and enables `hp_autoswitch.service` for automatic speaker/headphone switching.
+6. **Clean Audio (`RK817` + USB-C DAC) with Speaker Protection:** Sets hardware speaker attenuation to **`spk-volume = <0x23>;`** (`-13.1 dB`) in the DTB + `220/255` limiter and automatic routing in `hp_autoswitch.service` (priority: USB-C DAC → 3.5 mm jack → internal speaker).
 7. **Persistent Clock (No RTC Battery) & Host Timezone Auto-Detection:** Inherits your PC's timezone automatically (works worldwide; you can also change timezone/date/time directly on the handheld via **Options → System → Change Time** or **Start → System Settings → Date and Time**) and installs `save-clock.service` to persist time across reboots.
 8. **dArkOSen Boot & Charging Logos:** `640×480` 24-bit `logo.bmp` with exact K36 U-Boot BMP header + custom `220×110` `battery_0..5.bmp` / `battery_fail.bmp` charging icons.
+9. **USB Tethering (Android & iPhone) + USB Ethernet on OTG Port:** Custom-compiled Kernel `5.10.160` `.ko` modules (`usbnet`, `rndis_host`, `cdc_ncm`, `cdc_ether`, `ipheth`, `asix`, `ax88179_178a`) + plug-and-play `udev` rule with automatic DHCP while keeping `dr_mode = "host"`.
 
 ---
 
@@ -90,11 +91,15 @@ darkosen-k36/
 │   ├── builder.py                  # High-level workflows (check, build, patch, ram-mode, resize)
 │   ├── overlay_extractor.py        # DTS calibration compiler & K36 ext4 overlay extractor
 │   └── utils.py                    # Logging, shell execution, WSL2/timezone helpers
-├── assets/                         # Static hardware & OS assets organized by category
-│   ├── dtb/                        # Calibrated safe (328 MHz) & experimental (666 MHz) DTS/DTB files
+├── assets/                         # Static hardware & OS assets organized cleanly by function
+│   ├── audio/                      # RK817 ALSA state & automatic routing (hp_autoswitch + USB-C DAC)
 │   ├── boot_logos/                 # 640×480 U-Boot splash & 220×110 battery charging BMPs
+│   ├── controls/                   # play_joystick mappings (ES, RetroArch, PortMaster, and key daemons)
 │   ├── device_tools/               # On-device scripts (Diagnostico_Hardware_Real.sh, Testar_RAM_Frequencia.sh)
-│   └── rootfs_overlay/             # Kernel 5.10.160 modules, libfuse2, exfat-fuse, ALSA state, and play_joystick configs
+│   ├── dtb/                        # Calibrated safe (328 MHz) & experimental (666 MHz) DTS/DTB files
+│   ├── kernel/                     # Packed Kernel 5.10.160 modules archive (modules-5.10.160.tar.zst)
+│   ├── network/                    # udev rule & DHCP hotplug script for USB Tethering & USB Ethernet
+│   └── system/                     # System binaries, configs, and libs (libfuse2, exfat-fuse, ZRam, clock)
 └── docs/                           # Reference hardware photos & documentation
 ```
 

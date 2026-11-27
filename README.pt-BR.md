@@ -70,9 +70,10 @@ Os scripts de particionamento leem automaticamente o total exato de setores do s
 3. **Aceleração Gráfica Mali-G31 (`UK 11.38`):** Alinhamento dos links `libMali.so` (64-bit e 32-bit) para `libmali-bifrost-g31-rxp0-gbm.so` (`r13p0` / **UK 11.38**), eliminando o erro `file /dev/mali0 is not of a compatible version (user 10.6, kernel 11.38)`.
 4. **Trava Segura de RAM (`328 MHz`) + ZRam `512 MB` (`lz4`):** Desativa `opp-450000000` e `opp-528000000` no DTB calibrado, trava `/etc/dmc-settings.conf` em `328000000` e ativa 512 MB de swap ZRam (`lz4`) no boot.
 5. **Controles (`play_joystick`) e Botões A/B:** Injeta o GUID do `play_joystick` no EmulationStation, RetroArch 64/32-bit, `gamecontrollerdb.txt` do sistema e PortMaster, `buttonmon.sh`, `ogage` e `fn_menu_watcher.sh`; define `InvertButtons = false` (`A` confirma, `B` volta).
-6. **Áudio Calibrado (`RK817`) sem Estourar em 100%:** Reduz o ganho de hardware no DTB para **`spk-volume = <0x03>;`**, restaura o `/var/local/asound.state` real do K36 (`state.rockchiprk817`, `Playback Path = SPK`) e ativa o `hp_autoswitch.service` (troca automática alto-falante/fone).
+6. **Áudio Calibrado (`RK817` + USB-C DAC) sem Estourar:** Atenuação de hardware no DTB em **`spk-volume = <0x23>;`** (`-13,1 dB`) + limitador `220/255` e roteamento automático no `hp_autoswitch.service` (prioridade: DAC USB-C → Fone P2 3,5 mm → Alto-falante interno).
 7. **Relógio Persistente (sem Bateria RTC) e Fuso Automático:** Herda automaticamente o fuso horário do PC onde você rodar o script (funciona em qualquer país; também pode ser alterado direto no portátil em **Options → System → Change Time** ou **Start → System Settings → Date and Time**) e instala o `save-clock.service` para salvar a hora ao desligar.
 8. **Logos do dArkOSen no Boot e na Bateria:** `logo.bmp` em `640×480` 24-bit com o cabeçalho BMP exato do U-Boot do K36 + novos ícones `battery_0..5.bmp` / `battery_fail.bmp` (`220×110`).
+9. **USB Tethering (Android & iPhone) + Adaptadores USB Ethernet na Porta OTG:** Módulos `.ko` compilados sob medida para o Kernel `5.10.160` (`usbnet`, `rndis_host`, `cdc_ncm`, `cdc_ether`, `ipheth`, `asix`, `ax88179_178a`) + regra `udev` plug-and-play com DHCP automático mantendo `dr_mode = "host"`.
 
 ---
 
@@ -90,11 +91,15 @@ darkosen-k36/
 │   ├── builder.py                  # Fluxos principais (check, build, patch, ram-mode, resize)
 │   ├── overlay_extractor.py        # Compilador de calibração DTS e extrator de overlay do K36
 │   └── utils.py                    # Logs, execução de comandos e detecção de WSL2/fuso horário
-├── assets/                         # Recursos estáticos de hardware e sistema organizados por categoria
-│   ├── dtb/                        # Arquivos DTS/DTB calibrados (328 MHz seguro e 666 MHz experimental)
+├── assets/                         # Recursos estáticos organizados por função (sem pastas profundas)
+│   ├── audio/                      # Estado ALSA RK817 e roteamento automático (hp_autoswitch + USB-C DAC)
 │   ├── boot_logos/                 # Logos de boot 640×480 e ícones de carregamento de bateria 220×110
+│   ├── controls/                   # Mapeamentos play_joystick (ES, RetroArch, PortMaster e daemons)
 │   ├── device_tools/               # Scripts para o portátil (Diagnostico_Hardware_Real.sh, Testar_RAM_Frequencia.sh)
-│   └── rootfs_overlay/             # Módulos do Kernel 5.10.160, libfuse2, exfat-fuse, ALSA e controles play_joystick
+│   ├── dtb/                        # Arquivos DTS/DTB calibrados (328 MHz seguro e 666 MHz experimental)
+│   ├── kernel/                     # Módulos do Kernel 5.10.160 compactados (modules-5.10.160.tar.zst)
+│   ├── network/                    # Regra udev e script hotplug/DHCP para USB Tethering & USB Ethernet
+│   └── system/                     # Binários, configs e libs de sistema (libfuse2, exfat-fuse, ZRam, relógio)
 └── docs/                           # Fotos de referência da placa-mãe e documentação
 ```
 
