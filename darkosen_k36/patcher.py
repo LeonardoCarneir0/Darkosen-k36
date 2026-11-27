@@ -75,7 +75,26 @@ def patch_retroarch_cfgs(mnt_root: Path, *, dry_run: bool = False) -> None:
             warn(f"RetroArch config not found, skipping: {target_cfg}")
             continue
         k36_in = load_k36_inputs(k36_cfg) if k36_cfg.exists() else {}
-        k36_in["menu_swap_ok_cancel_buttons"] = '"false"'
+        # Preserve user's on-device analog & A/B/X/Y calibration if Calibrar_e_Testar_Analogicos.sh was run
+        if (Path(str(target_cfg) + ".bak_cal")).exists():
+            for cal_key in list(k36_in.keys()):
+                if cal_key.endswith(
+                    (
+                        "_x_minus_axis",
+                        "_x_plus_axis",
+                        "_y_minus_axis",
+                        "_y_plus_axis",
+                        "_l3_btn",
+                        "_r3_btn",
+                        "_a_btn",
+                        "_b_btn",
+                        "_x_btn",
+                        "_y_btn",
+                    )
+                ):
+                    k36_in.pop(cal_key, None)
+        else:
+            k36_in["menu_swap_ok_cancel_buttons"] = '"false"'
         lines = target_cfg.read_text().splitlines(keepends=True)
         seen: set[str] = set()
         out: list[str] = []
@@ -342,9 +361,10 @@ def apply_rootfs_patches(
         dry_run=dry_run,
     )
 
-    # A/B button orientation (A = Confirm, B = Back)
+    # A/B button orientation (A = Confirm, B = Back, unless user calibrated custom preference)
     es_cfg = mnt_root / "home/ark/.emulationstation/es_settings.cfg"
-    if not dry_run and es_cfg.exists():
+    has_custom_cal = (mnt_root / "etc/emulationstation/es_input.cfg.bak_cal").exists()
+    if not dry_run and es_cfg.exists() and not has_custom_cal:
         es_cfg.write_text(
             es_cfg.read_text().replace(
                 '<bool name="InvertButtons" value="true" />',
@@ -420,6 +440,12 @@ def populate_easyroms(
             check=False,
         )
 
+    safe_copy_file(
+        DEVICE_TOOLS_DIR / "Calibrar_e_Testar_Analogicos.sh",
+        mnt_roms / "tools/Calibrar_e_Testar_Analogicos.sh",
+        0o755,
+        dry_run=dry_run,
+    )
     safe_copy_file(
         DEVICE_TOOLS_DIR / "Diagnostico_Hardware_Real.sh",
         mnt_roms / "tools/Diagnostico_Hardware_Real.sh",

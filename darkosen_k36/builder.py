@@ -197,26 +197,41 @@ def cmd_patch(args: argparse.Namespace) -> None:
     clear_udev_inhibit_rule(dry_run=args.dry_run)
 
     unmount_device_partitions(args.device, dry_run=args.dry_run)
-    p1, p2 = part_path(args.device, 1), part_path(args.device, 2)
+    p1, p2, p3 = part_path(args.device, 1), part_path(args.device, 2), part_path(args.device, 3)
     mnt_boot = Path(tempfile.mkdtemp(prefix="darkos_boot_")) if not args.dry_run else Path("/tmp/dryrun_boot")
     mnt_root = Path(tempfile.mkdtemp(prefix="darkos_root_")) if not args.dry_run else Path("/tmp/dryrun_root")
+    mnt_roms = Path(tempfile.mkdtemp(prefix="darkos_roms_")) if not args.dry_run else Path("/tmp/dryrun_roms")
 
     try:
-        info("[1/2] Updating BOOT partition (clean kernel, calibrated DTB, dArkOSen logos)...")
+        info("[1/3] Updating BOOT partition (clean kernel, calibrated DTB, dArkOSen logos)...")
         run(["mount", p1, str(mnt_boot)], dry_run=args.dry_run)
         apply_boot_files(mnt_boot, experimental_ram=args.experimental_ram, dry_run=args.dry_run)
         run(["sync"], dry_run=args.dry_run)
         run(["umount", str(mnt_boot)], dry_run=args.dry_run)
 
-        info("[2/2] Updating ROOTFS partition (Mali UK 11.38, libfuse2, audio, A/B fix, clock)...")
+        info("[2/3] Updating ROOTFS partition (modules, Mali UK 11.38, libfuse2, audio, USB tethering, clock)...")
         run(["mount", p2, str(mnt_root)], dry_run=args.dry_run)
         apply_rootfs_patches(mnt_root, timezone=args.timezone, full_transplant=False, dry_run=args.dry_run)
         run(["sync"], dry_run=args.dry_run)
         run(["umount", str(mnt_root)], dry_run=args.dry_run)
+
+        info("[3/3] Updating EASYROMS/tools/ device scripts (analog calibrator, hardware diagnostics, RAM test)...")
+        run(["mount", p3, str(mnt_roms)], dry_run=args.dry_run)
+        for tool_name in ("Calibrar_e_Testar_Analogicos.sh", "Diagnostico_Hardware_Real.sh"):
+            safe_copy_file(DEVICE_TOOLS_DIR / tool_name, mnt_roms / "tools" / tool_name, 0o755, dry_run=args.dry_run)
+        if args.experimental_ram:
+            safe_copy_file(
+                DEVICE_TOOLS_DIR / "Testar_RAM_Frequencia.sh",
+                mnt_roms / "tools/Testar_RAM_Frequencia.sh",
+                0o755,
+                dry_run=args.dry_run,
+            )
+        run(["sync"], dry_run=args.dry_run)
+        run(["umount", str(mnt_roms)], dry_run=args.dry_run)
         ok(f"PATCH COMPLETE on {args.device}!")
     finally:
         if not args.dry_run:
-            for m in (mnt_boot, mnt_root):
+            for m in (mnt_boot, mnt_root, mnt_roms):
                 subprocess.run(["umount", str(m)], stderr=subprocess.DEVNULL, check=False)
                 if m.exists():
                     shutil.rmtree(m, ignore_errors=True)

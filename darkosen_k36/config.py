@@ -63,6 +63,7 @@ REQUIRED_ASSETS: tuple[Path, ...] = (
     SYSTEM_DIR / "libs/aarch64/libfuse.so.2.9.9",
     SYSTEM_DIR / "bin/mount.exfat-fuse",
     SYSTEM_DIR / "bin/change_time_k36.sh",
+    DEVICE_TOOLS_DIR / "Calibrar_e_Testar_Analogicos.sh",
     DEVICE_TOOLS_DIR / "Diagnostico_Hardware_Real.sh",
     DEVICE_TOOLS_DIR / "Testar_RAM_Frequencia.sh",
 )
