@@ -13,11 +13,17 @@ PACKAGE_DIR = Path(__file__).resolve().parent
 REPO_ROOT = PACKAGE_DIR.parent
 
 ASSETS_DIR = REPO_ROOT / "assets"
-DTB_DIR = ASSETS_DIR / "dtb"
+AUDIO_DIR = ASSETS_DIR / "audio"
 LOGOS_DIR = ASSETS_DIR / "boot_logos"
 BATTERY_BMPS_DIR = LOGOS_DIR / "battery_bmps"
+CONTROLS_DIR = ASSETS_DIR / "controls"
 DEVICE_TOOLS_DIR = ASSETS_DIR / "device_tools"
-OVERLAY_DIR = ASSETS_DIR / "rootfs_overlay"
+DTB_DIR = ASSETS_DIR / "dtb"
+KERNEL_DIR = ASSETS_DIR / "kernel"
+KERNEL_MODULES_ARCHIVE = KERNEL_DIR / "modules-5.10.160.tar.zst"
+NETWORK_DIR = ASSETS_DIR / "network"
+SYSTEM_DIR = ASSETS_DIR / "system"
+
 DOCS_DIR = REPO_ROOT / "docs"
 CACHE_DIR = REPO_ROOT / "cache"
 
@@ -45,12 +51,16 @@ REQUIRED_ASSETS: tuple[Path, ...] = (
     DTB_DIR / "rf3536k4ka.dtb",
     DTB_DIR / "rf3536k4ka_ram_test_666.dtb",
     LOGOS_DIR / "darkosen_logo_640x480.bmp",
+    AUDIO_DIR / "asound.state.k36",
+    AUDIO_DIR / "hp_autoswitch.sh",
+    AUDIO_DIR / "hp_autoswitch.service",
+    CONTROLS_DIR / "es_input.cfg",
+    CONTROLS_DIR / "pmk36/gamecontrollerdb.txt",
+    SYSTEM_DIR / "libs/aarch64/libfuse.so.2.9.9",
+    SYSTEM_DIR / "bin/mount.exfat-fuse",
+    SYSTEM_DIR / "bin/change_time_k36.sh",
     DEVICE_TOOLS_DIR / "Diagnostico_Hardware_Real.sh",
     DEVICE_TOOLS_DIR / "Testar_RAM_Frequencia.sh",
-    OVERLAY_DIR / "usr/lib/aarch64-linux-gnu/libfuse.so.2.9.9",
-    OVERLAY_DIR / "usr/sbin/mount.exfat-fuse",
-    OVERLAY_DIR / "etc/asound.state.k36",
-    OVERLAY_DIR / "usr/local/bin/change_time_k36.sh",
 )
 
 PJ_GCDB_LINE = (

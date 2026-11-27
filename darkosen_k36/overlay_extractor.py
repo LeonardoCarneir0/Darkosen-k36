@@ -1,5 +1,5 @@
 """
-Device Tree (.dts) calibration compiler and ArkOS K36 ext4 rootfs overlay extractor.
+Device Tree (.dts) calibration compiler and ArkOS K36 ext4 modular asset extractor.
 Replaces the legacy standalone prepare_k36_overlay.py script.
 """
 
@@ -9,9 +9,17 @@ import os
 import re
 import shutil
 import subprocess
+import tempfile
 from pathlib import Path
 
-from .config import DTB_DIR, OVERLAY_DIR, P2_START
+from .config import (
+    AUDIO_DIR,
+    CONTROLS_DIR,
+    DTB_DIR,
+    KERNEL_MODULES_ARCHIVE,
+    P2_START,
+    SYSTEM_DIR,
+)
 from .utils import die, ok
 
 
@@ -74,37 +82,61 @@ def extract_k36_rootfs_overlay(k36_img: Path) -> None:
     offset_bytes = P2_START * 512
     img_off = f"{k36_img}?offset={offset_bytes}"
 
-    for d in (
-        "usr/lib/modules",
-        "usr/lib/aarch64-linux-gnu",
-        "usr/sbin",
-        "usr/local/bin",
-        "etc/emulationstation",
-        "etc/systemd/system",
-        "home/ark/pmk36",
-        "home/ark/.config/retroarch",
-        "home/ark/.config/retroarch32",
+    for folder in (
+        AUDIO_DIR,
+        CONTROLS_DIR / "daemons",
+        CONTROLS_DIR / "pmk36",
+        CONTROLS_DIR / "retroarch",
+        KERNEL_MODULES_ARCHIVE.parent,
+        SYSTEM_DIR / "bin",
     ):
-        (OVERLAY_DIR / d).mkdir(parents=True, exist_ok=True)
+        folder.mkdir(parents=True, exist_ok=True)
 
-    cmds = [
-        f"rdump /lib/modules/5.10.160-gb9111f792d94-dirty {OVERLAY_DIR}/usr/lib/modules",
-        f"dump /home/ark/pmk36/control.txt {OVERLAY_DIR}/home/ark/pmk36/control.txt",
-        f"dump /home/ark/pmk36/gamecontrollerdb.txt {OVERLAY_DIR}/home/ark/pmk36/gamecontrollerdb.txt",
-        f"dump /usr/sbin/mount.exfat-fuse {OVERLAY_DIR}/usr/sbin/mount.exfat-fuse",
-        f"dump /usr/local/bin/ogage {OVERLAY_DIR}/usr/local/bin/ogage",
-        f"dump /usr/local/bin/fix_power_led {OVERLAY_DIR}/usr/local/bin/fix_power_led",
-        f"dump /usr/local/bin/checkbrightonboot {OVERLAY_DIR}/usr/local/bin/checkbrightonboot",
-        f"dump /usr/local/bin/fixvolume.sh {OVERLAY_DIR}/usr/local/bin/fixvolume.sh",
-        f"dump /etc/emulationstation/es_input.cfg {OVERLAY_DIR}/etc/emulationstation/es_input.cfg",
-        f"dump /home/ark/.config/retroarch/retroarch.cfg {OVERLAY_DIR}/home/ark/.config/retroarch/retroarch.cfg.k36",
-        f"dump /home/ark/.config/retroarch32/retroarch.cfg {OVERLAY_DIR}/home/ark/.config/retroarch32/retroarch.cfg.k36",
-    ]
-    for c in cmds:
-        subprocess.run(["/sbin/debugfs", "-R", c, img_off], check=True, stderr=subprocess.DEVNULL)
+    with tempfile.TemporaryDirectory(prefix="k36_mod_extract_") as tmp_dir:
+        tmp_stage = Path(tmp_dir) / "lib/modules"
+        tmp_stage.mkdir(parents=True, exist_ok=True)
 
-    os.chmod(OVERLAY_DIR / "usr/sbin/mount.exfat-fuse", 0o755)
-    for b in ("ogage", "fix_power_led", "checkbrightonboot", "fixvolume.sh"):
-        os.chmod(OVERLAY_DIR / "usr/local/bin" / b, 0o755)
+        # Preserve custom drivers/net/usb/*.ko from existing archive if present
+        if KERNEL_MODULES_ARCHIVE.exists():
+            subprocess.run(
+                ["tar", "-I", "zstd", "-xf", str(KERNEL_MODULES_ARCHIVE), "-C", str(tmp_stage)],
+                check=True,
+            )
 
-    ok(f"Extracted Kernel 5.10.160 overlay from {k36_img} into {OVERLAY_DIR}")
+        cmds = [
+            f"rdump /lib/modules/5.10.160-gb9111f792d94-dirty {tmp_stage}",
+            f"dump /home/ark/pmk36/control.txt {CONTROLS_DIR}/pmk36/control.txt",
+            f"dump /home/ark/pmk36/gamecontrollerdb.txt {CONTROLS_DIR}/pmk36/gamecontrollerdb.txt",
+            f"dump /usr/sbin/mount.exfat-fuse {SYSTEM_DIR}/bin/mount.exfat-fuse",
+            f"dump /usr/local/bin/ogage {CONTROLS_DIR}/daemons/ogage",
+            f"dump /usr/local/bin/fix_power_led {SYSTEM_DIR}/bin/fix_power_led",
+            f"dump /usr/local/bin/checkbrightonboot {SYSTEM_DIR}/bin/checkbrightonboot",
+            f"dump /usr/local/bin/fixvolume.sh {AUDIO_DIR}/fixvolume.sh",
+            f"dump /etc/emulationstation/es_input.cfg {CONTROLS_DIR}/es_input.cfg",
+            f"dump /home/ark/.config/retroarch/retroarch.cfg {CONTROLS_DIR}/retroarch/retroarch.cfg.k36",
+            f"dump /home/ark/.config/retroarch32/retroarch.cfg {CONTROLS_DIR}/retroarch/retroarch32.cfg.k36",
+        ]
+        for c in cmds:
+            subprocess.run(["/sbin/debugfs", "-R", c, img_off], check=True, stderr=subprocess.DEVNULL)
+
+        depmod_bin = shutil.which("depmod") or "/usr/sbin/depmod"
+        if Path(depmod_bin).exists():
+            subprocess.run([depmod_bin, "-a", "-b", tmp_dir, "5.10.160-gb9111f792d94-dirty"], check=True)
+
+        subprocess.run(
+            f"tar -C {tmp_stage} --owner=0 --group=0 -cf - 5.10.160-gb9111f792d94-dirty "
+            f"| zstd -19 -T0 -f -o {KERNEL_MODULES_ARCHIVE}",
+            shell=True,
+            check=True,
+        )
+
+    for exe in (
+        SYSTEM_DIR / "bin/mount.exfat-fuse",
+        SYSTEM_DIR / "bin/fix_power_led",
+        SYSTEM_DIR / "bin/checkbrightonboot",
+        CONTROLS_DIR / "daemons/ogage",
+        AUDIO_DIR / "fixvolume.sh",
+    ):
+        os.chmod(exe, 0o755)
+
+    ok(f"Extracted Kernel 5.10.160 modular assets from {k36_img}")

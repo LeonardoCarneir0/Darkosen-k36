@@ -10,8 +10,8 @@ darkos_rootfs_cache/
 Image_arkos_k36
 uInitrd_arkos_k36
 bootloader_16M.bin
-assets/rootfs_overlay/usr/lib/aarch64-linux-gnu/libmali-bifrost-g31-rxp0-wayland-gbm.so
-assets/rootfs_overlay/usr/lib/arm-linux-gnueabihf/libmali-bifrost-g31-rxp0-gbm.so
+assets/system/libs/aarch64/libmali-bifrost-g31-rxp0-wayland-gbm.so
+assets/system/libs/armhf/libmali-bifrost-g31-rxp0-gbm.so
 
 # Python packaging & bytecode
 __pycache__/

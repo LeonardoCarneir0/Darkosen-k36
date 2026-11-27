@@ -1,5 +1,5 @@
 """
-Boot partition, ROOTFS overlay transplant, RetroArch controller patching,
+Boot partition, ROOTFS modular asset transplant, RetroArch controller patching,
 and EASYROMS population logic.
 """
 
@@ -11,17 +11,21 @@ from pathlib import Path
 from typing import Optional
 
 from .config import (
+    AUDIO_DIR,
     BATTERY_BMPS_DIR,
+    CONTROLS_DIR,
     DEVICE_TOOLS_DIR,
     DTB_DIR,
     EXTLINUX_CONF,
     FIXVOLUME_SH,
     FSTAB_CONTENT,
+    KERNEL_MODULES_ARCHIVE,
     LOGOS_DIR,
-    OVERLAY_DIR,
+    NETWORK_DIR,
     PJ_GCDB_LINE,
     SAVE_CLOCK_SERVICE,
     SPKTOGGLE_SH,
+    SYSTEM_DIR,
     ZRAM_CONF,
     find_cached_file,
 )
@@ -58,8 +62,11 @@ def patch_retroarch_cfgs(mnt_root: Path, *, dry_run: bool = False) -> None:
                 inputs[k] = v
         return inputs
 
-    for sub in ("retroarch", "retroarch32"):
-        k36_cfg = OVERLAY_DIR / "home/ark/.config" / sub / "retroarch.cfg.k36"
+    cfg_map = {
+        "retroarch": CONTROLS_DIR / "retroarch/retroarch.cfg.k36",
+        "retroarch32": CONTROLS_DIR / "retroarch/retroarch32.cfg.k36",
+    }
+    for sub, k36_cfg in cfg_map.items():
         target_cfg = mnt_root / "home/ark/.config" / sub / "retroarch.cfg"
         if dry_run:
             info(f"[dry-run] patch {target_cfg} with {k36_cfg}")
@@ -133,6 +140,35 @@ def apply_boot_files(
     write_text(mnt_boot / "extlinux/extlinux.conf", EXTLINUX_CONF, 0o644, dry_run=dry_run)
 
 
+def install_kernel_modules(mnt_root: Path, *, dry_run: bool = False) -> None:
+    if not KERNEL_MODULES_ARCHIVE.exists():
+        warn(f"Kernel modules archive missing: {KERNEL_MODULES_ARCHIVE}")
+        return
+
+    mod_dst_root = mnt_root / "usr/lib/modules"
+    if not dry_run:
+        mod_dst_root.mkdir(parents=True, exist_ok=True)
+    run(
+        [
+            "tar",
+            "-I",
+            "zstd",
+            "--no-same-owner",
+            "-xf",
+            str(KERNEL_MODULES_ARCHIVE),
+            "-C",
+            str(mod_dst_root),
+        ],
+        dry_run=dry_run,
+    )
+    for kver in (
+        "5.10.160-gc18be26ca0ba-dirty",
+        "5.10.160-ge8de3988c23f-dirty",
+        "5.10.160-g4c735a3db925-dirty",
+    ):
+        safe_symlink("5.10.160-gb9111f792d94-dirty", mod_dst_root / kver, dry_run=dry_run)
+
+
 def apply_rootfs_patches(
     mnt_root: Path,
     *,
@@ -140,31 +176,13 @@ def apply_rootfs_patches(
     full_transplant: bool,
     dry_run: bool = False,
 ) -> None:
-    if full_transplant:
-        # 1. Kernel 5.10.160 modules + revision symlinks
-        mod_src = OVERLAY_DIR / "usr/lib/modules/5.10.160-gb9111f792d94-dirty"
-        mod_dst_root = mnt_root / "usr/lib/modules"
-        if mod_src.is_dir():
-            if not dry_run:
-                mod_dst_root.mkdir(parents=True, exist_ok=True)
-                target_mod = mod_dst_root / mod_src.name
-                if target_mod.exists():
-                    shutil.rmtree(target_mod)
-                shutil.copytree(mod_src, target_mod, symlinks=True)
-            else:
-                info(f"[dry-run] copytree {mod_src} -> {mod_dst_root / mod_src.name}")
-            for kver in (
-                "5.10.160-gc18be26ca0ba-dirty",
-                "5.10.160-ge8de3988c23f-dirty",
-                "5.10.160-g4c735a3db925-dirty",
-            ):
-                safe_symlink("5.10.160-gb9111f792d94-dirty", mod_dst_root / kver, dry_run=dry_run)
-        else:
-            warn(f"Kernel modules folder missing: {mod_src}")
+    # 1. Kernel 5.10.160 modules (Wi-Fi + USB Tethering + USB Ethernet + DVB) + revision symlinks
+    install_kernel_modules(mnt_root, dry_run=dry_run)
 
+    if full_transplant:
         # 2. exfat-fuse binary
         if safe_copy_file(
-            OVERLAY_DIR / "usr/sbin/mount.exfat-fuse",
+            SYSTEM_DIR / "bin/mount.exfat-fuse",
             mnt_root / "usr/sbin/mount.exfat-fuse",
             0o755,
             dry_run=dry_run,
@@ -172,14 +190,20 @@ def apply_rootfs_patches(
             safe_symlink("mount.exfat-fuse", mnt_root / "usr/sbin/mount.exfat", dry_run=dry_run)
             safe_symlink("/usr/sbin/mount.exfat-fuse", mnt_root / "sbin/mount.exfat", dry_run=dry_run)
 
-        # 3. Hardware helper binaries and scripts from overlay
-        bin_dir = OVERLAY_DIR / "usr/local/bin"
-        if bin_dir.is_dir():
-            for item in sorted(bin_dir.iterdir()):
-                if item.is_file() and item.name != "change_time_k36.sh":
+        # 3. Control daemons & system helper binaries
+        daemons_dir = CONTROLS_DIR / "daemons"
+        if daemons_dir.is_dir():
+            for item in sorted(daemons_dir.iterdir()):
+                if item.is_file():
+                    safe_copy_file(item, mnt_root / "usr/local/bin" / item.name, 0o755, dry_run=dry_run)
+
+        sys_bin_dir = SYSTEM_DIR / "bin"
+        if sys_bin_dir.is_dir():
+            for item in sorted(sys_bin_dir.iterdir()):
+                if item.is_file() and item.name not in ("change_time_k36.sh", "mount.exfat-fuse"):
                     safe_copy_file(item, mnt_root / "usr/local/bin" / item.name, 0o755, dry_run=dry_run)
         safe_copy_file(
-            OVERLAY_DIR / "usr/local/bin/zram-autostart.sh",
+            SYSTEM_DIR / "bin/zram-autostart.sh",
             mnt_root / "usr/local/bin/zram_autostart.sh",
             0o755,
             dry_run=dry_run,
@@ -204,18 +228,18 @@ def apply_rootfs_patches(
 
         # 5. play_joystick configs
         safe_copy_file(
-            OVERLAY_DIR / "etc/emulationstation/es_input.cfg",
+            CONTROLS_DIR / "es_input.cfg",
             mnt_root / "etc/emulationstation/es_input.cfg",
             0o644,
             dry_run=dry_run,
         )
         safe_copy_file(
-            OVERLAY_DIR / "etc/emulationstation/es_input.cfg",
+            CONTROLS_DIR / "es_input.cfg",
             mnt_root / "home/ark/.quirks/es_input.cfg",
             0o644,
             dry_run=dry_run,
         )
-        pmk36_src = OVERLAY_DIR / "home/ark/pmk36"
+        pmk36_src = CONTROLS_DIR / "pmk36"
         if pmk36_src.is_dir() and not dry_run:
             dst_pm = mnt_root / "home/ark/pmk36"
             if dst_pm.exists():
@@ -231,23 +255,11 @@ def apply_rootfs_patches(
                 if "19000f6a706c61795f6a6f7973746900" not in cur:
                     gcdb.write_text(cur.rstrip("\n") + "\n" + PJ_GCDB_LINE + "\n")
 
-        # 6. Safe RAM / CPU clocks, fstab, ZRam 512MB lz4, hp_autoswitch
+        # 6. Safe RAM / CPU clocks, fstab, ZRam 512MB lz4
         write_text(mnt_root / "etc/dmc-settings.conf", "FREQ=328000000\n", 0o644, dry_run=dry_run)
         write_text(mnt_root / "etc/cpu-settings.conf", "GOV=ondemand\nFREQ=1296000\n", 0o644, dry_run=dry_run)
         write_text(mnt_root / "etc/fstab", FSTAB_CONTENT, 0o644, dry_run=dry_run)
         write_text(mnt_root / "etc/zram.conf", ZRAM_CONF, 0o644, dry_run=dry_run)
-
-        if safe_copy_file(
-            OVERLAY_DIR / "etc/systemd/system/hp_autoswitch.service",
-            mnt_root / "etc/systemd/system/hp_autoswitch.service",
-            0o644,
-            dry_run=dry_run,
-        ):
-            safe_symlink(
-                "/etc/systemd/system/hp_autoswitch.service",
-                mnt_root / "etc/systemd/system/multi-user.target.wants/hp_autoswitch.service",
-                dry_run=dry_run,
-            )
 
         if not dry_run:
             for ob in (
@@ -277,7 +289,7 @@ def apply_rootfs_patches(
 
     # libfuse.so.2 for Debian 13 exFAT mount
     if safe_copy_file(
-        OVERLAY_DIR / "usr/lib/aarch64-linux-gnu/libfuse.so.2.9.9",
+        SYSTEM_DIR / "libs/aarch64/libfuse.so.2.9.9",
         mnt_root / "usr/lib/aarch64-linux-gnu/libfuse.so.2.9.9",
         0o644,
         dry_run=dry_run,
@@ -288,10 +300,10 @@ def apply_rootfs_patches(
             dry_run=dry_run,
         )
 
-    # Audio state & scripts
-    safe_copy_file(OVERLAY_DIR / "etc/asound.state.k36", mnt_root / "var/local/asound.state", 0o644, dry_run=dry_run)
+    # Audio state & automatic routing (RK817 + USB-C DAC)
+    safe_copy_file(AUDIO_DIR / "asound.state.k36", mnt_root / "var/local/asound.state", 0o644, dry_run=dry_run)
     safe_copy_file(
-        OVERLAY_DIR / "etc/asound.state.k36",
+        AUDIO_DIR / "asound.state.k36",
         mnt_root / "var/lib/alsa/asound.state",
         0o644,
         dry_run=dry_run,
@@ -299,13 +311,13 @@ def apply_rootfs_patches(
     write_text(mnt_root / "usr/local/bin/fixvolume.sh", FIXVOLUME_SH, 0o755, dry_run=dry_run)
     write_text(mnt_root / "usr/local/bin/spktoggle.sh", SPKTOGGLE_SH, 0o755, dry_run=dry_run)
     safe_copy_file(
-        OVERLAY_DIR / "usr/local/bin/hp_autoswitch.sh",
+        AUDIO_DIR / "hp_autoswitch.sh",
         mnt_root / "usr/local/bin/hp_autoswitch.sh",
         0o755,
         dry_run=dry_run,
     )
     if safe_copy_file(
-        OVERLAY_DIR / "etc/systemd/system/hp_autoswitch.service",
+        AUDIO_DIR / "hp_autoswitch.service",
         mnt_root / "etc/systemd/system/hp_autoswitch.service",
         0o644,
         dry_run=dry_run,
@@ -349,7 +361,7 @@ def apply_rootfs_patches(
     safe_symlink("/etc/systemd/system/save-clock.service", wants_dir / "save-clock.service", dry_run=dry_run)
 
     safe_copy_file(
-        OVERLAY_DIR / "usr/local/bin/change_time_k36.sh",
+        SYSTEM_DIR / "bin/change_time_k36.sh",
         mnt_root / "opt/system/System/Change Time.sh",
         0o755,
         dry_run=dry_run,
@@ -409,12 +421,12 @@ def populate_easyroms(
         )
     for pm_sub in ("tools/PortMaster", "ports/PortMaster"):
         safe_copy_file(
-            OVERLAY_DIR / "home/ark/pmk36/control.txt",
+            CONTROLS_DIR / "pmk36/control.txt",
             mnt_roms / pm_sub / "control.txt",
             dry_run=dry_run,
         )
         safe_copy_file(
-            OVERLAY_DIR / "home/ark/pmk36/gamecontrollerdb.txt",
+            CONTROLS_DIR / "pmk36/gamecontrollerdb.txt",
             mnt_roms / pm_sub / "gamecontrollerdb.txt",
             dry_run=dry_run,
         )
