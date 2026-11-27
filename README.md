@@ -95,7 +95,7 @@ darkosen-k36/
 │   ├── audio/                      # RK817 ALSA state & automatic routing (hp_autoswitch + USB-C DAC)
 │   ├── boot_logos/                 # 640×480 U-Boot splash & 220×110 battery charging BMPs
 │   ├── controls/                   # play_joystick mappings (ES, RetroArch, PortMaster, and key daemons)
-│   ├── device_tools/               # On-device scripts (Diagnostico_Hardware_Real.sh, Testar_RAM_Frequencia.sh)
+│   ├── device_tools/               # On-device tools (Calibrar_e_Testar_Analogicos.sh, Diagnostico_Hardware_Real.sh, Testar_RAM_Frequencia.sh)
 │   ├── dtb/                        # Calibrated safe (328 MHz) & experimental (666 MHz) DTS/DTB files
 │   ├── kernel/                     # Packed Kernel 5.10.160 modules archive (modules-5.10.160.tar.zst)
 │   ├── network/                    # udev rule & DHCP hotplug script for USB Tethering & USB Ethernet
